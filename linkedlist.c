@@ -3,12 +3,13 @@
 
 typedef struct node {
 	int data;
+
 	struct node* next;
-} node;
+}node;
 
 typedef struct list {
 	node* head;
-} list;
+}list;
 
 int append(list* l, int data);
 int print(list* l);
@@ -86,8 +87,10 @@ int destroy(list* l){
 	while(current != NULL){ // Traverse the list and free each node.
 		node* temp = current->next; // Use a temp node as the next node in order to switch to the next one after the current has been freed. 
 		free(current);
+		printf("Node has been freed\n");
 		current = temp;
 	}
+	free(l); // Free'ing the whole list after all of the nodes were successfully freed
 	
 	return 0;
 }
