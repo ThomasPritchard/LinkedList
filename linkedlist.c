@@ -1,8 +1,12 @@
+// An unrolled LinkedList in C. 
+// Utilising cache-hits to speed up overall performance. 
+
 #include <stdio.h>
 #include <stdlib.h>
 
 typedef struct node {
-	int data;
+	int numOfElements;
+	int elements[4];
 
 	struct node* next;
 }node;
@@ -12,7 +16,7 @@ typedef struct list {
 }list;
 
 int append(list* l, int data);
-int print(list* l);
+int print(list* l, int size);
 int destroy(list* l);
 
 int main() {
@@ -23,12 +27,14 @@ int main() {
 		return 0;
 	}
 	l->head = NULL; // Set the head of the list to NULL. 
+
+	int size = 1000000;
 	
-	for(int i = 0; i < 10 ; i++){
+	for(int i = 0; i < size ; i++){
 		append(l, i+1); // Adding items 1 to 10. 
 	}
 	
-	print(l); // Print out all items in the list. 
+	print(l, size); // Print out all items in the list. 
 	
 	destroy(l); // free all data. 
 
@@ -38,23 +44,35 @@ int main() {
 int append(list* l, int data){
 	
 	// Check if list is empty. 
-	if(l->head == NULL){
-		printf("current is null \n");
+	if(l->head == NULL){ // Only working with the head. 
 		l->head = (node*) malloc(sizeof(node));
 		if(l->head == NULL){
 			printf("Allocation of head node is incomplete");
 			return -1;
 		}
-		l->head->data = data;
-		printf("Successfully added first number %d \n", l->head->data);
-		l->head->next = NULL;
+		l->head->numOfElements = 0; // Initialise our first index. 
+		l->head->elements[l->head->numOfElements] = data; // Add the data to the first index in the array. 
+		l->head->numOfElements += 1; // Incrementing to the next index. 
+		l->head->next = NULL; // Prepare the next node. 
 		return 0;
 	}
 
-	node* current = l->head; // Create a node.
-	while(current->next != NULL){
+	node* current = l->head; // Setting the current node to the head.
+
+	if(current->numOfElements != 4){ // If array is non-empty within the head. 
+		current->elements[current->numOfElements] = data;
+		current->numOfElements += 1;
+		return 0;
+	}
+
+	while(current->next != NULL && current->next->numOfElements == 4){ //If node array is full, traverse to the next node.  
 		current = current->next;
-		printf("Current is not null \n");
+	}
+
+	if(current->next != NULL && current->next->numOfElements != 4){
+		current->next->elements[current->next->numOfElements] = data; // Append the element
+		current->next->numOfElements += 1;
+		return 0;
 	}
 	
 	// Allocate memory for the new node. Make sure to check if malloc has been successful. 
@@ -63,21 +81,25 @@ int append(list* l, int data){
 		printf("Allocation of node is incomplete");
 		return -1;
 	}
-	
-	current->next->data = data; // Append the element
+	current->next->numOfElements = 0;
+	current->next->elements[current->next->numOfElements] = data; // Set the first element within the new node. 
+	current->next->numOfElements += 1;
 	current->next->next = NULL;
-	printf("Successfully added number %d \n", data);
+
 	return 0;
 }
 
-int print(list* l){
+int print(list* l, int size){
 	node* current = l->head;
 	// Printing the current item in the list. 
-	while(current != NULL){
-		printf("%d -> ", current->data);
+	while(current != NULL && size > 0){
+		for(int i = 0; i < 4; i++){
+			if(size > 0) printf("%d -> ", current->elements[i]);
+			size--;
+		}
 		current = current->next; // Then traverse along the list.
 	}
-	printf("End of list \n");
+	printf("End of list. \n");
 	return 0; // When the current is null, end the print by returning 0.
 }
 
@@ -87,11 +109,9 @@ int destroy(list* l){
 	while(current != NULL){ // Traverse the list and free each node.
 		node* temp = current->next; // Use a temp node as the next node in order to switch to the next one after the current has been freed. 
 		free(current);
-		printf("Node has been freed\n");
 		current = temp;
 	}
 	free(l); // Free'ing the whole list after all of the nodes were successfully freed
 	
 	return 0;
 }
-
